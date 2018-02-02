@@ -5,10 +5,11 @@ trial_num: smallint                 #trial number
 ---
 contrast_left: float                #Contrast on the left
 contrast_right: float               #Contrast on the right
-response: enum("L","R","NG")        # choice made
+response: enum("Left","Right","NoGo")        # choice made
 feedback_type: enum("Incorrect","Correct") # feedback 
 reaction_time: float                #reaction time
-repeat_num: smallint                
+repeat_num: smallint        
+data_row: longblob #data row
 %}
 
 classdef Trial < dj.Computed
@@ -19,7 +20,7 @@ classdef Trial < dj.Computed
             
             %Go through each trial, populating the Trial table with each
             %entry
-            responses = {"L","R","NG"};
+            responses = {"Left","Right","NoGo"};
             feedbacks = {"Incorrect","Correct"};
             
             djo = struct('mouse_name',[],'session_date',[],...
@@ -27,7 +28,7 @@ classdef Trial < dj.Computed
                          'contrast_left',[],'contrast_right',[],...
                          'response',[],'feedback_type',[],...
                          'repeat_num',[],'reaction_time',[]);
-                     
+             
                      
             for tr = 1:length(D.response)
                 djo(tr).mouse_name = key.mouse_name;
@@ -45,6 +46,7 @@ classdef Trial < dj.Computed
                 else
                     djo(tr).reaction_time = D.RT(tr);
                 end
+                djo(tr).data_row = getrow(D,tr);
                
             end
             self.insert(djo);

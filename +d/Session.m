@@ -4,13 +4,14 @@
 session_date: date   # session date
 session_num: smallint # session number in the day
 -----
+-> d.Project
+-> d.Rig
 num_trials: smallint # number of trials
 performance: float # proportion correct overall
 stimulus_type: enum("Detection","Discrimination")
 choice_type: enum("2AFC","2AUC")
 data: longblob #Cached data file
-project_id: varchar(128) # Project ID
-rig: varchar(128) #Experimental rig
+
 %}
 
 classdef Session < dj.Imported
@@ -39,6 +40,13 @@ classdef Session < dj.Imported
 
                 try
                     [D,meta] = loadData(expRefs{sess});
+                    
+                    try
+                        D.laserRegion = cellstr(D.laserRegion);
+                        D.prev_laserRegion = cellstr(D.prev_laserRegion);
+                    catch
+                    end
+                    
                     key.session_date = datestr(date,29);
                     key.session_num = seq;
                     key.num_trials = length(D.response);
@@ -47,15 +55,16 @@ classdef Session < dj.Imported
                     key.choice_type = char( categorical(max(D.response),2:3,{'2AFC','2AUC'}) );
                     key.data = D;
                     
-                    %Identify project, load all info I need (parameter files, etc)
-                    key.rig = meta.rig;
-                    if any(contains(key.rig,{'zredone','zredtwo','zredthree','zgreyfour'}))
-                        key.project_id = 'training';
-                    end
-                    
                     %Add to DJ
-                    if key.num_trials > 50
-                        self.insert(key);
+                    if key.num_trials > 10
+                        key.rig = meta.rig;
+                        key.project_id = self.identifyProject(key);
+                        
+                        try
+                            self.insert(key);
+                        catch
+                            keyboard;
+                        end
                     end
                 catch me
                     disp(me);
@@ -63,6 +72,47 @@ classdef Session < dj.Imported
                 
             end
             
+            
+        end
+        
+        function proj_id = identifyProject(~,key)
+           
+            if any(contains(key.rig,{'zredone','zredtwo','zredthree','zgreyfour','zym3'}))
+                proj_id = 'training';
+                return;
+            end
+            
+            if isfield(key.data,'laserType')
+                
+%                 %Number of coordinates
+%                 numCoords = size( unique(key.data.laserCoord(key.data.laserType~=0,:),'rows'), 1);
+                
+                if any(contains(key.rig,{'zym1','zym2'})) %Blue rigs
+
+                    %pulse or long-duration?
+                    if max(key.data.laserDuration) == 1.5
+                        prefix = 'galvo_';
+                    elseif max(key.data.laserDuration) == 0.025
+                        prefix = 'galvoPulse_';
+                    else
+                        keyboard;
+                    end
+                    
+                elseif strcmp(key.rig,'zgood') %Nick's rig
+                    prefix = 'sparse_';
+                end
+
+                %Unilateral or bilateral?
+                if max(key.data.laserType)==1
+                    proj_id = [prefix 'unilateral'];
+                elseif max(key.data.laserType)==2
+                    proj_id = [prefix 'bilateral'];
+                else
+                    proj_id = [key.choice_type '_' key.stimulus_type];
+                end
+            else
+                proj_id = [key.choice_type '_' key.stimulus_type];
+            end
             
         end
     end

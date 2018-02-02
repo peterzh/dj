@@ -9,6 +9,8 @@ performance: float # proportion correct overall
 stimulus_type: enum("Detection","Discrimination")
 choice_type: enum("2AFC","2AUC")
 data: longblob #Cached data file
+project_id: varchar(128) # Project ID
+rig: varchar(128) #Experimental rig
 %}
 
 classdef Session < dj.Imported
@@ -36,7 +38,7 @@ classdef Session < dj.Imported
                 [~, date, seq] = dat.parseExpRef(expRefs{sess});
 
                 try
-                    D = loadData(expRefs{sess});
+                    [D,meta] = loadData(expRefs{sess});
                     key.session_date = datestr(date,29);
                     key.session_num = seq;
                     key.num_trials = length(D.response);
@@ -46,7 +48,10 @@ classdef Session < dj.Imported
                     key.data = D;
                     
                     %Identify project, load all info I need (parameter files, etc)
-                    
+                    key.rig = meta.rig;
+                    if any(contains(key.rig,{'zredone','zredtwo','zredthree','zgreyfour'}))
+                        key.project_id = 'training';
+                    end
                     
                     %Add to DJ
                     if key.num_trials > 50

@@ -3,10 +3,6 @@
 region: varchar(128)   # region name
 hemisphere: enum("Left","Right","Both")
 ---
-ap_1: float
-ap_2: float
-ml_1: float
-
 %}
 
 classdef BrainRegion < dj.Lookup

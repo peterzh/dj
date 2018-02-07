@@ -31,9 +31,10 @@ classdef GLMFit < dj.Computed
            
            %Get all non-laser trials associated with this session, with
            %repeatNum==1
-           trials = (d.Trial & key & 'repeat_num=1') - d.LaserTrial; 
+           trials = (d.Trial - d.TrialLaser) & key & (d.TrialStim & 'repeat_num=1');
 
-           [contrast_left, contrast_right, response, repeat_num] = fetchn(trials,'contrast_left','contrast_right','response','repeat_num');
+           [contrast_left, contrast_right, repeat_num] = fetchn( trials * d.TrialStim, 'contrast_left', 'contrast_right','repeat_num');
+           [response] = fetchn( trials * d.TrialResponse, 'response');
            
            %Create data struct
            D = struct;
@@ -45,8 +46,7 @@ classdef GLMFit < dj.Computed
                warning('Skipping because too-few trials');
                return;
            end
-           
-           
+
            %If 2AUC, fit C50-subset
            g = GLM(D).setModel(model_name).fit;
            
@@ -54,12 +54,12 @@ classdef GLMFit < dj.Computed
            
            g = g.fitCV(10);
            ph = g.p_hat(:,1).*(g.data.response==1) + g.p_hat(:,2).*(g.data.response==2) + g.p_hat(:,3).*(g.data.response==3);
-           key.crossval_loglik = mean(log2(ph));
+           key.crossval_loglik = mean(log2(ph)) - g.guess_bpt;
            
            if isnan(key.crossval_loglik) || isinf(key.crossval_loglik)
                ph(ph<0.000001)=[];
                ph(isnan(ph))=[];
-               key.crossval_loglik = mean(log2(ph));
+               key.crossval_loglik = mean(log2(ph)) - g.guess_bpt;
 
            end
            

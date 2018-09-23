@@ -22,6 +22,8 @@ classdef Mouse < dj.Lookup
         'Spemann',  '2015-07-13',   'M',    'Ai32.Pv';
         'Murphy',   '2015-07-13',   'M',   'Ai32.Pv';
         'Chomsky',  '2016-04-01',   'F',    'Ai32.Pv';
+        'Hopkins',  '2015-05-30',   'F',     'Ai32.Pv';
+        'Eijkman',  '2015-06-02',   'M',     'Ai32.Pv';
         };
     end
 end

@@ -29,6 +29,8 @@ classdef Trial < dj.Imported
             makeTuples(d.TrialResponse,djo);
             fprintf('Trial timings info..');
             makeTuples(d.TrialTimings,djo);
+            fprintf('Trial wheel info..');
+            makeTuples(d.TrialWheel,djo);
                 
             if isfield(D,'laserCoord') && any(D.laserType>0)
                 makeTuples(d.TrialLaser,djo);

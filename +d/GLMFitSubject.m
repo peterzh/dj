@@ -1,25 +1,25 @@
 %{
-# GLM fit computation
--> d.Session
+# GLM fit for each subject's complete dataset
+-> d.Mouse
 -> d.GLM
----
+-----
 model_params : longblob # model object
 crossval_loglik : float # model crossvalidated log likelihood relative to guess
+figure_path="" : varchar(1024)
 %}
 
-classdef GLMFit < dj.Computed
-    methods(Access=protected)
-        function makeTuples(self,key)
-            
-            %Skip this process for training sessions
-            if strcmp(fetch1(d.Session & key,'project_id'), 'training')
-                return
-            end
-            
-            %First check whether the model is possible, i.e. 2AFC behaviour
+classdef GLMFitSubject < dj.Computed
+
+	methods(Access=protected)
+
+		function makeTuples(self, key)
+		%!!! compute missing fields for key here
+        
+        %Get all non-training non-laser data for that mouse
+		            %First check whether the model is possible, i.e. 2AFC behaviour
             %should use binomial model, while 2AUC should use multinomial
             model_type = fetch1(d.GLM & key,'model_type');
-            choice_type = fetch1(d.Session & key,'choice_type');
+            choice_type = '2AUC';
             
             if strcmp(model_type,'Binomial') && ~strcmp(choice_type,'2AFC')
                 return
@@ -29,9 +29,9 @@ classdef GLMFit < dj.Computed
             
            model_name = fetch1(d.GLM & key,'model_name');
            
-           %Get all non-laser trials associated with this session, with
+           %Get all non-laser non-training trials associated with this session, with
            %repeatNum==1
-           trials = (d.Trial - d.TrialLaser) & key & (d.TrialStim & 'repeat_num=1');
+           trials = (d.Trial - d.TrialLaser) & key & (d.TrialStim & 'repeat_num=1') & (d.Session - 'project_id="training"');
 
            [contrast_left, contrast_right, repeat_num] = fetchn( trials * d.TrialStim, 'contrast_left', 'contrast_right','repeat_num');
            [response] = fetchn( trials * d.TrialResponse, 'response');
@@ -47,8 +47,15 @@ classdef GLMFit < dj.Computed
                return;
            end
 
-           %If 2AUC, fit C50-subset
            g = GLM(D).setModel(model_name).fit;
+           %Print fit and save
+           fig = g.plotFit;
+           figure_path = ['C:\Users\Peter\Desktop\LocalSessionGLMFits\AllSessions\' key.mouse_name '_' model_name];
+           print(fig, figure_path,'-dpng');
+           close(fig);
+           key.figure_path = figure_path;
+           
+           
            
            key.model_params = g.parameterFits;
            
@@ -65,6 +72,7 @@ classdef GLMFit < dj.Computed
            
            %Write parameters
            self.insert(key);
-        end
-    end
+		end
+	end
+
 end
